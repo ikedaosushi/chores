@@ -1,0 +1,21 @@
+{
+  "name": "arxivtimes",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "dependencies": {
+    "dotenv": "^4.0.0",
+    "lodash": "^4.17.4",
+    "request": "^2.83.0",
+    "requests": "^0.2.2",
+    "sleep": "^5.1.1",
+    "superagent": "^3.8.0",
+    "twitter": "^1.7.0"
+  },
+  "devDependencies": {},
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC"
+}

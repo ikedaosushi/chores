@@ -1,0 +1,8 @@
+{
+  "name": "chatwork-bot",
+  "description": "",
+  "memory": 128,
+  "timeout": 5,
+  "role": "arn:aws:iam::081200852128:role/chatwork-bot_lambda_function",
+  "environment": {}
+}

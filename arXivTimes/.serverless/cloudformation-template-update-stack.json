@@ -17,6 +17,12 @@
         "LogGroupName": "/aws/lambda/arXivTimes-dev-twitter"
       }
     },
+    "TestLogGroup": {
+      "Type": "AWS::Logs::LogGroup",
+      "Properties": {
+        "LogGroupName": "/aws/lambda/arXivTimes-dev-test"
+      }
+    },
     "IamRoleLambdaExecution": {
       "Type": "AWS::IAM::Role",
       "Properties": {
@@ -36,6 +42,59 @@
             }
           ]
         },
+        "Policies": [
+          {
+            "PolicyName": {
+              "Fn::Join": [
+                "-",
+                [
+                  "dev",
+                  "arXivTimes",
+                  "lambda"
+                ]
+              ]
+            },
+            "PolicyDocument": {
+              "Version": "2012-10-17",
+              "Statement": [
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:CreateLogStream"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/arXivTimes-dev-arxivtimes:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/arXivTimes-dev-twitter:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/arXivTimes-dev-test:*"
+                    }
+                  ]
+                },
+                {
+                  "Effect": "Allow",
+                  "Action": [
+                    "logs:PutLogEvents"
+                  ],
+                  "Resource": [
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/arXivTimes-dev-arxivtimes:*:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/arXivTimes-dev-twitter:*:*"
+                    },
+                    {
+                      "Fn::Sub": "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:/aws/lambda/arXivTimes-dev-test:*:*"
+                    }
+                  ]
+                }
+              ]
+            }
+          }
+        ],
         "Path": "/",
         "RoleName": {
           "Fn::Join": [
@@ -50,71 +109,6 @@
         }
       }
     },
-    "IamPolicyLambdaExecution": {
-      "Type": "AWS::IAM::Policy",
-      "DependsOn": [
-        "IamRoleLambdaExecution"
-      ],
-      "Properties": {
-        "PolicyName": {
-          "Fn::Join": [
-            "-",
-            [
-              "dev",
-              "arXivTimes",
-              "lambda"
-            ]
-          ]
-        },
-        "PolicyDocument": {
-          "Version": "2012-10-17",
-          "Statement": [
-            {
-              "Effect": "Allow",
-              "Action": [
-                "logs:CreateLogStream",
-                "logs:PutLogEvents"
-              ],
-              "Resource": [
-                {
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "ArxivtimesLogGroup",
-                          "Arn"
-                        ]
-                      },
-                      "*"
-                    ]
-                  ]
-                },
-                {
-                  "Fn::Join": [
-                    ":",
-                    [
-                      {
-                        "Fn::GetAtt": [
-                          "TwitterLogGroup",
-                          "Arn"
-                        ]
-                      },
-                      "*"
-                    ]
-                  ]
-                }
-              ]
-            }
-          ]
-        },
-        "Roles": [
-          {
-            "Ref": "IamRoleLambdaExecution"
-          }
-        ]
-      }
-    },
     "ArxivtimesLambdaFunction": {
       "Type": "AWS::Lambda::Function",
       "Properties": {
@@ -122,10 +116,10 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/arXivTimes/dev/1492510195915-2017-04-18T10:09:55.915Z/arXivTimes.zip"
+          "S3Key": "serverless/arXivTimes/dev/1511623353515-2017-11-25T15:22:33.515Z/arXivTimes.zip"
         },
         "FunctionName": "arXivTimes-dev-arxivtimes",
-        "Handler": "handler.arxivtimes",
+        "Handler": "src/arxivtimes.execute",
         "MemorySize": 1024,
         "Role": {
           "Fn::GetAtt": [
@@ -133,22 +127,22 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs6.10",
         "Timeout": 6
       },
       "DependsOn": [
-        "IamPolicyLambdaExecution",
+        "ArxivtimesLogGroup",
         "IamRoleLambdaExecution"
       ]
     },
-    "ArxivtimesLambdaVersion7IugCIMcfhMWYXfmUA17efYoCGCmgrIVDZgQKaOi3U": {
+    "ArxivtimesLambdaVersionh0Qqd1npqAUQondsO4pw25lg6VxEaONvMbOQf1orUU": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "ArxivtimesLambdaFunction"
         },
-        "CodeSha256": "7IugCIMcfhMWYXfmUA17efYoCGCmgrIVDZgQK/aOi3U="
+        "CodeSha256": "h0Qqd1npqAUQo+ndsO4pw25lg6VxEaONvMbOQf1orUU="
       }
     },
     "TwitterLambdaFunction": {
@@ -158,10 +152,10 @@
           "S3Bucket": {
             "Ref": "ServerlessDeploymentBucket"
           },
-          "S3Key": "serverless/arXivTimes/dev/1492510195915-2017-04-18T10:09:55.915Z/arXivTimes.zip"
+          "S3Key": "serverless/arXivTimes/dev/1511623353515-2017-11-25T15:22:33.515Z/arXivTimes.zip"
         },
         "FunctionName": "arXivTimes-dev-twitter",
-        "Handler": "twitter.hillbig",
+        "Handler": "src/twitter.execute",
         "MemorySize": 1024,
         "Role": {
           "Fn::GetAtt": [
@@ -169,22 +163,58 @@
             "Arn"
           ]
         },
-        "Runtime": "nodejs4.3",
+        "Runtime": "nodejs6.10",
         "Timeout": 6
       },
       "DependsOn": [
-        "IamPolicyLambdaExecution",
+        "TwitterLogGroup",
         "IamRoleLambdaExecution"
       ]
     },
-    "TwitterLambdaVersion7IugCIMcfhMWYXfmUA17efYoCGCmgrIVDZgQKaOi3U": {
+    "TwitterLambdaVersionh0Qqd1npqAUQondsO4pw25lg6VxEaONvMbOQf1orUU": {
       "Type": "AWS::Lambda::Version",
       "DeletionPolicy": "Retain",
       "Properties": {
         "FunctionName": {
           "Ref": "TwitterLambdaFunction"
         },
-        "CodeSha256": "7IugCIMcfhMWYXfmUA17efYoCGCmgrIVDZgQK/aOi3U="
+        "CodeSha256": "h0Qqd1npqAUQo+ndsO4pw25lg6VxEaONvMbOQf1orUU="
+      }
+    },
+    "TestLambdaFunction": {
+      "Type": "AWS::Lambda::Function",
+      "Properties": {
+        "Code": {
+          "S3Bucket": {
+            "Ref": "ServerlessDeploymentBucket"
+          },
+          "S3Key": "serverless/arXivTimes/dev/1511623353515-2017-11-25T15:22:33.515Z/arXivTimes.zip"
+        },
+        "FunctionName": "arXivTimes-dev-test",
+        "Handler": "src/twitter.execute",
+        "MemorySize": 1024,
+        "Role": {
+          "Fn::GetAtt": [
+            "IamRoleLambdaExecution",
+            "Arn"
+          ]
+        },
+        "Runtime": "nodejs6.10",
+        "Timeout": 6
+      },
+      "DependsOn": [
+        "TestLogGroup",
+        "IamRoleLambdaExecution"
+      ]
+    },
+    "TestLambdaVersionh0Qqd1npqAUQondsO4pw25lg6VxEaONvMbOQf1orUU": {
+      "Type": "AWS::Lambda::Version",
+      "DeletionPolicy": "Retain",
+      "Properties": {
+        "FunctionName": {
+          "Ref": "TestLambdaFunction"
+        },
+        "CodeSha256": "h0Qqd1npqAUQo+ndsO4pw25lg6VxEaONvMbOQf1orUU="
       }
     },
     "ArxivtimesEventsRuleSchedule1": {
@@ -271,13 +301,19 @@
     "ArxivtimesLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "ArxivtimesLambdaVersion7IugCIMcfhMWYXfmUA17efYoCGCmgrIVDZgQKaOi3U"
+        "Ref": "ArxivtimesLambdaVersionh0Qqd1npqAUQondsO4pw25lg6VxEaONvMbOQf1orUU"
       }
     },
     "TwitterLambdaFunctionQualifiedArn": {
       "Description": "Current Lambda function version",
       "Value": {
-        "Ref": "TwitterLambdaVersion7IugCIMcfhMWYXfmUA17efYoCGCmgrIVDZgQKaOi3U"
+        "Ref": "TwitterLambdaVersionh0Qqd1npqAUQondsO4pw25lg6VxEaONvMbOQf1orUU"
+      }
+    },
+    "TestLambdaFunctionQualifiedArn": {
+      "Description": "Current Lambda function version",
+      "Value": {
+        "Ref": "TestLambdaVersionh0Qqd1npqAUQondsO4pw25lg6VxEaONvMbOQf1orUU"
       }
     }
   }

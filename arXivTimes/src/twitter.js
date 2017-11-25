@@ -1,20 +1,39 @@
 'use strict';
-let Twitter = require('twitter')
-  , request = require('superagent')
+
+const Twitter = require('twitter')
+  , path = require('path')
+  , rp = require('request-promise-native')
   , _ = require('lodash')
-  , c_token = '03de1d3a24aeb0392fcba36381804d0b'
-  , room_id = '64248330'
-  , chatwork_tmplt = _.template('[info][title]<%= title %>[/title]<%= wrap %>\r\n<%= url %>[/info]')
-  , client = new Twitter({
-      consumer_key: 'ir2DksYpe9hmzPJnLqKBGxQCe',
-      consumer_secret: 'm39ne6P8JgLGQRMy74jIvMTtdh3L6yftrkDd5LzTOSkAZT8Cxp',
-      access_token_key: '136669186-vj2ii7uIqcFdy5FTm7KMIibQWdMlcwNBZgGBXTCF',
-      access_token_secret: 'E5O4U0xe5UhNpQhcs3ah2teCJ31AfJjyJGf29vjkfNuFh'
-    })
+  , sleep = require('sleep')
   ;
 
-function extractLatestTweets(tweets){
-  let now = new Date()
+// setup environmental var
+const envPath = path.join(process.cwd(), '.env');
+require('dotenv').config(envPath);
+
+const CHATWORK_TOKEN = process.env.CHATWORK_TOKEN
+  // , ROOM_ID = process.env.ROOM_ID
+  , ROOM_ID = process.env.TEST_ROOM_ID
+  ;
+
+const TWCLIENT = new Twitter({
+  consumer_key: process.env.CONSUMER_KEY,
+  consumer_secret: process.env.CONSUMER_SECRET,
+  access_token_key: process.env.ACCESS_TOKEN_KEY,
+  access_token_secret: process.env.ACCESS_TOKEN_SECRET
+});
+
+const CHATWORK_POST_ENDPOINT = `https://api.chatwork.com/v2/rooms/${ROOM_ID}/messages`
+  , CHATWORK_UNREAD_ENDPOINT = `https://api.chatwork.com/v2/rooms/${ROOM_ID}/messages/unread`
+
+const SCREEN_NAMES = [
+  'hillbig',
+  'ymatsuo',
+  'hamadakoichi'
+]
+
+const extractLatestTweets = tweets => {
+  const now = new Date()
     , oneHourAgo = new Date(
         now.getFullYear(),
         now.getMonth(),
@@ -23,16 +42,108 @@ function extractLatestTweets(tweets){
         now.getMinutes()
       )
     ;
-  return _.filter(tweets, function(e, i){
-    return oneHourAgo < new Date(e['created_at'])
-  }).map(function(e, i){
-    return chatwork_tmplt({
-        title: 'hillbig on Twitter',
-        wrap : e['text'],
-        url  : 'https://twitter.com/hillbig/status/' + e['id_str']
-    });
-  }).join("");
+  const latestTweets =  _.filter(tweets, element=>{
+    return oneHourAgo < new Date(element['created_at'])
+  });
+
+  return latestTweets;
 };
+
+const formatChatworkStyle = (tweets, screenName)=>{
+  const formattedText = _.map(tweets, element => {
+    const body = element['text'];
+    const id = element['id_str'];
+    const messageBody = `[info][title]${screenName} on Twitter[/title]${body}\r\nhttps://twitter.com/hillbig/status/${id} [/info]`;
+    return messageBody;
+  }).join("");
+  return formattedText;
+}
+
+const searchLatestTweets = screenName => {
+  const params = {
+    screen_name: screenName
+  }
+  return new Promise(resolve => {
+    TWCLIENT.get('statuses/user_timeline', params)
+      .then(tweets => {
+        const latestTweets = extractLatestTweets(tweets);
+        resolve(latestTweets);
+      });
+  })
+
+}
+
+const NotifyToChatwork = screenName => {
+  return new Promise(resolve => {
+    (async () => {
+      const tweets = await searchLatestTweets(screenName);
+      const messageBody = formatChatworkStyle(tweets, screenName);
+      let options, response;
+      if(!messageBody) return;
+      options = {
+        method: 'POST',
+        uri: CHATWORK_POST_ENDPOINT,
+        form: {
+          body: messageBody
+        },
+        headers: {
+          'User-Agent': 'serverless-bot',
+          'X-ChatWorkToken': CHATWORK_TOKEN
+        },
+        json: true
+      };
+      response = await rp(options);
+      const messageId = response['message_id'];
+      resolve(messageId);
+    })();
+  });
+};
+
+const markUnRead = messageId => {
+  (async () => {  
+    // Wait 10 seconds because it needs some seconds until chatwork reflect post result 
+    await sleep.sleep(10);
+
+    const options = {
+      method: 'PUT',
+      uri: CHATWORK_UNREAD_ENDPOINT,
+      form: {
+        message_id: messageId
+      },
+      headers: {
+        'User-Agent': 'serverless-bot',
+        'X-ChatWorkToken': CHATWORK_TOKEN
+      },
+      json: true
+    };
+    response = await rp(options);
+  })();
+}
+
+module.exports.execute = (event, context, callback) => {
+  let promises = [];
+  let promise;
+  SCREEN_NAMES.forEach(screenName => {
+    promise = NotifyToChatwork(screenName);
+    promises.push(promise);
+  });
+  Promise.all(promises)
+    .then((messageIds) => {
+      if (!_.isEmpty(messageIds)) {
+        console.log(messageIds);
+        markUnRead(_.min(messageIds));
+      }
+
+      const response = {
+        statusCode: 200,
+        body: JSON.stringify({
+          message: 'success🍺',
+          input: event,
+        }),
+      };
+      callback(null, response);
+    });
+}
 
 module.exports.hillbig = (event, context, callback) => {
   let params = {screen_name: 'hillbig'};

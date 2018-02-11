@@ -1,1 +1,8 @@
+# JS 
 node_modules/
+
+# Mac
+.DS_Store
+
+# Python
+__pycache__

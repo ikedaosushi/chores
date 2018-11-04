@@ -1,2 +1,2 @@
 # serverless
-serverless関連
+The repository serverless application for private misc

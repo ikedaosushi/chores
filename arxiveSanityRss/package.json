@@ -1,0 +1,10 @@
+{
+  "name": "arxiveSanityRss",
+  "description": "",
+  "version": "0.1.0",
+  "dependencies": {},
+  "devDependencies": {
+    "serverless-domain-manager": "^2.6.6",
+    "serverless-python-requirements": "^4.2.5"
+  }
+}

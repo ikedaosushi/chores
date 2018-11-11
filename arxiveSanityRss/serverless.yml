@@ -1,11 +1,80 @@
-service: arxiveSanityRss # NOTE: update this with your service name
+service: arxiveSanityRss 
 
 provider:
   name: aws
   runtime: python3.6
   stage: dev
-  region: ap-northeast-1
   profile: sls
+  region: us-east-1
+  environment:
+    DYNAMODB_TABLE: ${self:service}-${opt:stage, self:provider.stage}
+  iamRoleStatements:
+    - Effect: Allow
+      Action:
+        - dynamodb:Query
+        - dynamodb:Scan
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:UpdateItem
+        - dynamodb:DeleteItem
+      Resource: "arn:aws:dynamodb:${opt:region, self:provider.region}:*:table/${self:provider.environment.DYNAMODB_TABLE}"
+
+plugins:
+  - serverless-domain-manager
+  - serverless-python-requirements
+
+custom:
+  pythonRequirements:
+    dockerizePip: true
+    usePipenv: true
+  customDomain:
+    domainName: arxiv.sorasoya.de
+    certificateName: '*.sorasoya.de'
+    basePath: api
+    stage: ${self:provider.stage}
+    createRoute53Record: true
+    endpointType: 'regional'
+
+functions:
+  fetch:
+    handler: batch.fetch
+    events:
+      - schedule: rate(1 hour)
+    timeout: 300
+  list:
+    handler: api.list
+    events:
+      - http:
+          path: list
+          method: get
+          cors: true
+    timeout: 10
+  hello:
+    handler: handler.hello
+    events:
+      - http:
+          path: hello
+          method: get
+
+resources:
+  Resources:
+    ArxivSanityTable:
+      Type: 'AWS::DynamoDB::Table'
+      DeletionPolicy: Retain
+      Properties:
+        AttributeDefinitions:
+          -
+            AttributeName: id
+            AttributeType: S
+        KeySchema:
+          -
+            AttributeName: id
+            KeyType: HASH
+        ProvisionedThroughput:
+          ReadCapacityUnits: 1
+          WriteCapacityUnits: 1
+        TableName: ${self:provider.environment.DYNAMODB_TABLE}
+
 
 # you can define service wide environment variables here
 #  environment:
@@ -19,10 +88,6 @@ provider:
 #  exclude:
 #    - exclude-me.py
 #    - exclude-me-dir/**
-
-functions:
-  hello:
-    handler: handler.hello
 
 #    The following are a few example events you can configure
 #    NOTE: Please make sure to change your handler code to work with those events

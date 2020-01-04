@@ -1,2 +1,2 @@
-# serverless
-The repository serverless application for private misc
+# chores
+Do boring chores.
